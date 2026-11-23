@@ -6,6 +6,7 @@ import {
   openDMChannel,
   sendSlackMessage,
   buildMessage,
+  formatApprovalStatus,
 } from "./helpers.js";
 
 async function confirm(rl, question) {
@@ -42,9 +43,15 @@ async function main() {
     for (const pr of prs) {
       console.log(`PR #${pr.number}: ${pr.title}`);
       console.log(`  URL: ${pr.url}`);
+      console.log(`  Approvals: ${formatApprovalStatus(pr.approvals)}`);
 
       if (pr.isInMergeQueue) {
         console.log("  Already in merge queue — skipping.\n");
+        continue;
+      }
+
+      if (pr.reviewDecision === "APPROVED") {
+        console.log("  Already approved — skipping.\n");
         continue;
       }
 
@@ -63,7 +70,12 @@ async function main() {
         continue;
       }
 
-      console.log(`  Reviewers: ${reviewers.join(", ")}`);
+      const label = (login) =>
+        pr.reviewerNames[login]
+          ? `${login} (${pr.reviewerNames[login]})`
+          : login;
+
+      console.log(`  Reviewers: ${reviewers.map(label).join(", ")}`);
 
       if (
         rl &&
@@ -80,22 +92,28 @@ async function main() {
         const slackId = slackMap[ghUsername];
 
         if (!slackId) {
-          console.log(`  [!] No Slack ID found for GitHub user: ${ghUsername}`);
+          console.log(
+            `  [!] No Slack ID found for GitHub user: ${label(ghUsername)}`,
+          );
           continue;
         }
 
         const message = buildMessage(pr);
 
         if (DRY_RUN) {
-          console.log(`  [dry-run] Would DM ${ghUsername} (${slackId}):`);
+          console.log(
+            `  [dry-run] Would DM ${label(ghUsername)} [${slackId}]:`,
+          );
           console.log(`    "${message}"`);
         } else {
           try {
             const channelId = await openDMChannel(slackId);
             await sendSlackMessage(channelId, message);
-            console.log(`  Pinged ${ghUsername} on Slack.`);
+            console.log(`  Pinged ${label(ghUsername)} on Slack.`);
           } catch (err) {
-            console.error(`  Failed to ping ${ghUsername}: ${err.message}`);
+            console.error(
+              `  Failed to ping ${label(ghUsername)}: ${err.message}`,
+            );
           }
         }
       }
