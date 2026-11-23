@@ -5,3 +5,5 @@ export const GITHUB_USERNAME = process.env.GITHUB_USERNAME;
 export const SLACK_TOKEN = process.env.SLACK_TOKEN;
 export const SLACK_MAP_PATH = process.env.SLACK_MAP_PATH;
 export const DRY_RUN = process.argv.includes("--dry-run");
+export const AUTO_YES =
+  process.argv.includes("--yes") || process.argv.includes("-y");

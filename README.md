@@ -42,8 +42,11 @@ npm install
 # Preview without sending anything
 node index.js --dry-run
 
-# Send the pings
+# Send the pings (asks y/N per PR before DMing its reviewers)
 node index.js
+
+# Send the pings without asking (for scripts / scheduled runs)
+node index.js --yes   # or -y
 ```
 
 ## How it works
