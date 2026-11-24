@@ -168,6 +168,57 @@ export async function sendSlackMessage(channelId, text) {
   return data;
 }
 
-export function buildMessage(pr) {
+let myUserIdPromise;
+function getMyUserId() {
+  myUserIdPromise ??= fetch("https://slack.com/api/auth.test", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${SLACK_TOKEN}` },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.ok) throw new Error(`auth.test failed: ${data.error}`);
+      return data.user_id;
+    });
+  return myUserIdPromise;
+}
+
+// True if we've already sent a message containing this PR's URL in the DM.
+// Requires the `im:history` user scope.
+export async function hasAlreadyPinged(channelId, prUrl) {
+  const myUserId = await getMyUserId();
+  let cursor;
+  do {
+    const params = new URLSearchParams({ channel: channelId, limit: "200" });
+    if (cursor) params.set("cursor", cursor);
+    const res = await fetch(
+      `https://slack.com/api/conversations.history?${params}`,
+      { headers: { Authorization: `Bearer ${SLACK_TOKEN}` } },
+    );
+    const data = await res.json();
+    if (!data.ok) throw new Error(`conversations.history failed: ${data.error}`);
+    if (
+      data.messages.some(
+        (m) => m.user === myUserId && m.text?.includes(prUrl),
+      )
+    ) {
+      return true;
+    }
+    cursor = data.response_metadata?.next_cursor;
+  } while (cursor);
+  return false;
+}
+
+// followUp: we already pinged this reviewer about this PR in a previous run.
+// another:  we already messaged this reviewer about a different PR in this run.
+export function buildMessage(pr, { followUp = false, another = false } = {}) {
+  if (another && followUp) {
+    return `And a reminder about this one too, if you can :pray:\n${pr.url}`;
+  }
+  if (another) {
+    return `And one more, if you have a moment :sweat_smile: Thanks!\n${pr.url}`;
+  }
+  if (followUp) {
+    return `Hey! Just a friendly reminder about this PR, whenever you get a chance :pray:\n${pr.url}`;
+  }
   return `Hey! Could you please take a look at this PR when you get a chance? Thanks! :pray:\n${pr.url}`;
 }

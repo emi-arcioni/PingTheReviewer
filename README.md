@@ -26,7 +26,8 @@ You need a Slack **user token** (starts with `xoxp-`) so the message appears as 
 1. Go to **https://api.slack.com/apps** and click **Create New App → From scratch**.
 2. Name it (e.g. "PingTheReviewer"), select the **Vanta** workspace.
 3. In the left sidebar go to **OAuth & Permissions**.
-4. Under **User Token Scopes** add: `chat:write`, `im:write`.
+4. Under **User Token Scopes** add: `chat:write`, `im:write`, `im:history`.
+   (`im:history` lets the script detect a previous ping and send a follow-up instead. If you add it later, reinstall the app.)
 5. Click **Install to Workspace** → authorize.
 6. Copy the **User OAuth Token** (`xoxp-...`) and set it as `SLACK_TOKEN` in your `.env`.
 
@@ -53,7 +54,8 @@ node index.js --yes   # or -y
 
 1. Uses `gh` CLI to list your open, non-draft PRs on `VantaInc/obsidian`.
 2. Reads the YAML file at `SLACK_MAP_PATH` to resolve GitHub usernames → Slack member IDs.
-3. Opens a DM channel with each reviewer and sends a message.
+3. Opens a DM channel with each reviewer and checks the history for a message you sent containing the PR URL.
+4. Sends a first-time message, or a reminder if you already pinged them about that PR.
 
 Team reviewer handles (e.g. `design-systems-global-approvers`) are silently skipped since they're not in the user map.
 
